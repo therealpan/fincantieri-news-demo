@@ -447,7 +447,7 @@ select.field-input option { background: #fff; color: var(--text-primary); }
   overflow: hidden; background: #000; aspect-ratio: 16/9;
   border: 1px solid var(--border);
 }
-.video-container video { width: 100%; height: 100%; display: block; }
+.video-container video, .video-container img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .video-overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px;
@@ -859,9 +859,7 @@ select.field-input option { background: #fff; color: var(--text-primary); }
       <!-- Preview area -->
       <div class="preview-area" id="previewArea">
         <div class="video-container">
-          <canvas id="previewCanvas" style="width:100%;height:100%;display:block;"></canvas>
-          <div class="video-overlay" id="videoOverlay" style="pointer-events:none;opacity:0;">
-          </div>
+          <img src="preview.webp" alt="Fincantieri News — Anteprima">
         </div>
         <div class="video-meta">
           <span>1920x1080</span>
@@ -1413,122 +1411,8 @@ function showPreview() {
   document.getElementById('modalChoices').style.display = 'none';
   document.getElementById('previewArea').classList.add('visible');
   document.getElementById('modal').classList.add('expanded');
-  drawPreviewFrame();
 }
 
-function drawPreviewFrame() {
-  const canvas = document.getElementById('previewCanvas');
-  if (!canvas) return;
-  canvas.width = 854;
-  canvas.height = 480;
-  const ctx = canvas.getContext('2d');
-
-  // Dark studio background
-  ctx.fillStyle = '#0a1628';
-  ctx.fillRect(0, 0, 854, 480);
-
-  // LED wall glow
-  const grad = ctx.createRadialGradient(427, 140, 20, 427, 140, 300);
-  grad.addColorStop(0, 'rgba(0,77,153,0.25)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 854, 480);
-
-  // News desk
-  ctx.fillStyle = '#1a2a44';
-  ctx.beginPath();
-  ctx.ellipse(427, 420, 360, 40, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Marco silhouette (left)
-  drawAnchorStatic(ctx, 280, 200, '#003366', 'M');
-  // Giulia silhouette (right)
-  drawAnchorStatic(ctx, 570, 200, '#4B2080', 'G');
-
-  // Lower third
-  ctx.fillStyle = 'rgba(0,51,102,0.9)';
-  roundRect(ctx, 40, 380, 350, 50, 4);
-  ctx.fill();
-  ctx.fillStyle = '#0077B6';
-  ctx.fillRect(40, 380, 3, 50);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px DM Sans, sans-serif';
-  ctx.fillText('Marco Ferretti', 54, 402);
-  ctx.fillStyle = '#0077B6';
-  ctx.font = '11px DM Sans, sans-serif';
-  ctx.fillText('Anchor', 54, 420);
-
-  // FINCANTIERI NEWS badge
-  ctx.fillStyle = 'rgba(0,51,102,0.85)';
-  roundRect(ctx, 620, 20, 210, 30, 4);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 12px DM Sans, sans-serif';
-  ctx.fillText('FINCANTIERI NEWS', 634, 40);
-
-  // Live dot (static)
-  ctx.fillStyle = 'rgba(220,38,38,0.9)';
-  ctx.beginPath();
-  ctx.arc(830, 35, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Timecode
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = '10px JetBrains Mono, monospace';
-  ctx.fillText('00:00:00', 770, 468);
-
-  // Play icon overlay
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(0, 0, 854, 480);
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.beginPath();
-  ctx.arc(427, 240, 36, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.moveTo(417, 222);
-  ctx.lineTo(445, 240);
-  ctx.lineTo(417, 258);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = '12px DM Sans, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Fincantieri News — Anteprima', 427, 290);
-  ctx.textAlign = 'start';
-}
-
-function drawAnchorStatic(ctx, cx, cy, color, initial) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(cx, cy - 60, 30, 36, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(cx, cy + 40, 55, 70, 0, 0, Math.PI);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = 'bold 18px DM Sans, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(initial, cx, cy - 54);
-  ctx.textAlign = 'start';
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
 
 function backToChoices() {
   document.getElementById('previewArea').classList.remove('visible');
