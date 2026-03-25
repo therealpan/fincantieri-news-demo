@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fincantieri News Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #003366;
+  --navy-deep: #001a33;
+  --navy-light: #004d99;
+  --accent-blue: #0077B6;
+  --accent-cyan: #00B4D8;
+  --accent-gold: #C7A94F;
+  --red-live: #DC2626;
+  --red-glow: #EF4444;
+  --green: #22C55E;
+  --green-dim: #16A34A;
+  --orange: #F59E0B;
+  --surface-0: #0a0e1a;
+  --surface-1: #0f1629;
+  --surface-2: #151d35;
+  --surface-3: #1b2540;
+  --surface-4: #222e4e;
+  --text-primary: #F0F4FF;
+  --text-secondary: #8B9CC7;
+  --text-muted: #5A6A94;
+  --border: rgba(255,255,255,0.06);
+  --border-active: rgba(0,119,182,0.4);
+  --glow-blue: 0 0 20px rgba(0,119,182,0.3);
+  --glow-green: 0 0 15px rgba(34,197,94,0.3);
+  --glow-red: 0 0 15px rgba(220,38,38,0.4);
+  --glow-gold: 0 0 15px rgba(199,169,79,0.3);
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--surface-0);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,51,102,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(0,119,182,0.08) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(10,14,26,0) 0%, rgba(10,14,26,0.6) 100%);
+  pointer-events: none; z-index: 0;
+}
+.bg-grid {
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none; z-index: 0;
+}
+
+.app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 56px;
+  background: rgba(10,14,26,0.85);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+.header-brand { display: flex; align-items: center; gap: 12px; }
+.header-logo {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--navy), var(--accent-blue));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 14px; font-weight: 800;
+  color: #fff; letter-spacing: -0.5px;
+}
+.header-title { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
+.header-title span { color: var(--accent-blue); }
+.header-meta { display: flex; align-items: center; gap: 20px; font-size: 12px; color: var(--text-secondary); }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 10px 3px 8px; border-radius: 20px;
+  background: rgba(220,38,38,0.12); color: var(--red-live);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--red-live);
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(220,38,38,0); }
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.status-dot.green { background: var(--green); box-shadow: var(--glow-green); }
+
+/* Main Layout */
+.main-grid { display: grid; grid-template-columns: 320px 1fr 340px; gap: 0; flex: 1; min-height: 0; }
+
+/* Panels */
+.panel-left { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; max-height: calc(100vh - 56px); }
+.panel-section { padding: 20px; border-bottom: 1px solid var(--border); }
+.panel-section:last-child { border-bottom: none; }
+.section-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label svg { width: 14px; height: 14px; opacity: 0.5; }
+
+/* Form */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+.field-input {
+  width: 100%; padding: 9px 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 13px;
+  transition: border-color var(--transition), box-shadow var(--transition); outline: none;
+}
+.field-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(0,119,182,0.15); }
+.field-input::placeholder { color: var(--text-muted); }
+select.field-input {
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235A6A94' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px;
+}
+select.field-input option { background: var(--surface-2); color: var(--text-primary); }
+
+.range-row { display: flex; align-items: center; gap: 10px; }
+.range-row input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--surface-4); border-radius: 2px; outline: none; }
+.range-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent-blue); border-radius: 50%; cursor: pointer; border: 2px solid var(--surface-1); }
+.range-value { font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan); min-width: 20px; text-align: right; }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.toggle-label { font-size: 12px; color: var(--text-secondary); }
+.toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--surface-4); cursor: pointer; position: relative; transition: background var(--transition); }
+.toggle.active { background: var(--accent-blue); }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform var(--transition); }
+.toggle.active::after { transform: translateX(16px); }
+
+/* Pipeline Cards */
+.pipeline-card {
+  padding: 10px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); cursor: pointer;
+  margin-bottom: 8px; transition: all var(--transition);
+  display: flex; align-items: center; gap: 12px;
+}
+.pipeline-card:hover { border-color: var(--border-active); background: var(--surface-2); }
+.pipeline-card.selected { border-color: var(--accent-blue); background: rgba(0,119,182,0.08); box-shadow: var(--glow-blue); }
+.pipeline-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: var(--font-mono); color: #fff; flex-shrink: 0;
+}
+.pipeline-icon.poseidon { background: linear-gradient(135deg, #6366F1, #8B5CF6); }
+.pipeline-icon.triton { background: linear-gradient(135deg, #0EA5E9, #06B6D4); }
+.pipeline-icon.nautilus { background: linear-gradient(135deg, #F59E0B, #EAB308); }
+.pipeline-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.pipeline-info p { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.pipeline-badge {
+  margin-left: auto; font-size: 9px; font-weight: 600;
+  padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.pipeline-badge.best { background: rgba(34,197,94,0.15); color: var(--green); }
+.pipeline-badge.fast { background: rgba(245,158,11,0.15); color: var(--orange); }
+.cost-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--accent-gold); padding: 2px 8px;
+  background: rgba(199,169,79,0.1); border-radius: 4px;
+}
+
+/* Center Panel */
+.panel-center { display: flex; flex-direction: column; overflow-y: auto; max-height: calc(100vh - 56px); }
+
+.pipeline-viz { padding: 24px 28px 20px; border-bottom: 1px solid var(--border); }
+.pipeline-viz h3 { font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.pipeline-steps { display: flex; align-items: flex-start; gap: 0; position: relative; overflow-x: auto; padding-bottom: 8px; }
+.p-step { display: flex; flex-direction: column; align-items: center; min-width: 90px; position: relative; flex-shrink: 0; }
+.p-step-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-3); border: 2px solid var(--border);
+  position: relative; z-index: 2; transition: all 0.4s ease;
+}
+.p-step-icon svg { width: 20px; height: 20px; color: var(--text-muted); }
+.p-step.active .p-step-icon { background: rgba(0,119,182,0.15); border-color: var(--accent-blue); box-shadow: var(--glow-blue); }
+.p-step.active .p-step-icon svg { color: var(--accent-blue); }
+.p-step.done .p-step-icon { background: rgba(34,197,94,0.1); border-color: var(--green); }
+.p-step.done .p-step-icon svg { color: var(--green); }
+.p-step-label { margin-top: 8px; font-size: 10px; font-weight: 500; color: var(--text-muted); text-align: center; line-height: 1.3; max-width: 80px; }
+.p-step.active .p-step-label { color: var(--accent-blue); }
+.p-step.done .p-step-label { color: var(--green); }
+.p-step-connector { position: absolute; top: 22px; left: 67px; width: calc(100% - 44px); height: 2px; background: var(--border); z-index: 1; }
+.p-step.done .p-step-connector { background: var(--green); }
+.p-step.active .p-step-connector {
+  background: linear-gradient(90deg, var(--accent-blue) 50%, var(--border) 50%);
+  background-size: 200% 100%; animation: connectorPulse 1.5s ease-in-out infinite;
+}
+@keyframes connectorPulse { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.p-step.active .p-step-icon::after {
+  content: ''; position: absolute; inset: -4px;
+  border: 2px solid transparent; border-top-color: var(--accent-blue);
+  border-radius: 14px; animation: stepSpin 1s linear infinite;
+}
+@keyframes stepSpin { to { transform: rotate(360deg); } }
+
+/* Progress */
+.overall-progress { padding: 0 28px; margin-bottom: 0; border-bottom: 1px solid var(--border); padding-bottom: 16px; padding-top: 16px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.progress-header span:first-child { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.progress-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--accent-cyan); }
+.progress-bar-track { width: 100%; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; position: relative; }
+.progress-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--navy-light), var(--accent-blue), var(--accent-cyan));
+  transition: width 0.6s ease; position: relative;
+}
+.progress-bar-fill::after {
+  content: ''; position: absolute; right: 0; top: 0; width: 30px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+@keyframes shimmer { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
+.progress-stats { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+.progress-stats span { display: flex; align-items: center; gap: 4px; }
+
+/* Terminal */
+.terminal-section { flex: 1; display: flex; flex-direction: column; min-height: 300px; }
+.terminal-header { padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.terminal-header h3 { font-size: 13px; font-weight: 600; }
+.terminal-tabs { display: flex; gap: 2px; }
+.terminal-tab {
+  padding: 4px 12px; font-size: 11px; font-weight: 500;
+  border-radius: 6px; cursor: pointer; color: var(--text-muted);
+  background: transparent; border: none; transition: all var(--transition);
+}
+.terminal-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
+.terminal-tab.active { color: var(--text-primary); background: var(--surface-3); }
+.terminal-body {
+  flex: 1; overflow-y: auto; padding: 16px 28px;
+  font-family: var(--font-mono); font-size: 12px;
+  line-height: 1.7; background: var(--surface-0);
+}
+.log-line { display: flex; gap: 8px; padding: 1px 0; opacity: 0; animation: logFade 0.3s ease forwards; }
+@keyframes logFade { to { opacity: 1; } }
+.log-time { color: var(--text-muted); min-width: 58px; flex-shrink: 0; font-size: 11px; }
+.log-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.log-msg { color: var(--text-secondary); word-break: break-word; }
+.log-highlight { color: var(--accent-cyan); }
+.log-ok { color: var(--green); }
+.log-warn { color: var(--orange); }
+.log-err { color: var(--red-live); }
+.log-dim { color: var(--text-muted); }
+.log-gold { color: var(--accent-gold); }
+
+/* Right Panel */
+.panel-right { border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; max-height: calc(100vh - 56px); }
+
+.script-card {
+  padding: 12px 14px; margin-bottom: 8px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface-2); transition: all var(--transition);
+}
+.script-card.active { border-color: var(--accent-blue); background: rgba(0,119,182,0.06); }
+.script-card.done { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04); }
+.script-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.speaker-avatar {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.speaker-avatar.marco { background: linear-gradient(135deg, var(--navy), var(--navy-light)); }
+.speaker-avatar.giulia { background: linear-gradient(135deg, #6B21A8, #9333EA); }
+.speaker-name { font-size: 12px; font-weight: 600; }
+.speaker-role { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+.script-text { font-size: 12px; line-height: 1.6; color: var(--text-secondary); font-style: italic; padding-left: 36px; }
+.script-meta { display: flex; gap: 12px; padding-left: 36px; margin-top: 6px; font-size: 10px; color: var(--text-muted); }
+.script-meta span { display: flex; align-items: center; gap: 3px; }
+
+.clip-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 4px;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.clip-status.pending { background: var(--surface-4); color: var(--text-muted); }
+.clip-status.generating { background: rgba(0,119,182,0.15); color: var(--accent-blue); }
+.clip-status.done { background: rgba(34,197,94,0.12); color: var(--green); }
+
+.waveform { display: flex; align-items: center; gap: 1px; height: 20px; padding-left: 36px; margin-top: 6px; }
+.waveform.active .wave-bar { animation: waveAnim 0.6s ease-in-out infinite alternate; }
+.wave-bar { width: 2px; border-radius: 1px; background: var(--accent-blue); opacity: 0.5; }
+@keyframes waveAnim { 0% { height: 3px; } 100% { height: 16px; } }
+
+.news-card {
+  padding: 14px; border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(0,51,102,0.2), rgba(0,119,182,0.08));
+  border: 1px solid rgba(0,119,182,0.2);
+}
+.news-card h4 { font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
+.news-facts { font-size: 11px; color: var(--text-secondary); line-height: 1.6; list-style: none; }
+.news-facts li { margin-bottom: 3px; }
+.news-facts li::before { content: ''; display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--accent-blue); margin-right: 8px; vertical-align: middle; }
+
+.broll-card { padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface-2); margin-bottom: 6px; font-size: 11px; }
+.broll-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.broll-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: rgba(245,158,11,0.12); color: var(--orange); text-transform: uppercase; }
+.broll-prompt { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+
+/* Launch */
+.launch-area { padding: 20px; border-top: 1px solid var(--border); }
+.btn-launch {
+  width: 100%; padding: 13px; border: none; border-radius: var(--radius);
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  cursor: pointer; position: relative; overflow: hidden;
+  color: #fff; letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--navy), var(--accent-blue));
+  transition: all var(--transition);
+}
+.btn-launch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,119,182,0.35); }
+.btn-launch:active:not(:disabled) { transform: translateY(0); }
+.btn-launch:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-launch.running { background: linear-gradient(135deg, var(--surface-3), var(--surface-4)); cursor: not-allowed; }
+.btn-launch.running::after {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,119,182,0.15), transparent);
+  animation: btnShimmer 2s ease-in-out infinite;
+}
+@keyframes btnShimmer { to { left: 100%; } }
+.btn-launch.complete { background: linear-gradient(135deg, var(--green-dim), var(--green)); }
+
+/* Footer */
+.stats-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 28px; border-top: 1px solid var(--border);
+  background: rgba(10,14,26,0.6); font-size: 11px; color: var(--text-muted);
+}
+.stat-group { display: flex; gap: 20px; }
+.stat-item { display: flex; align-items: center; gap: 5px; }
+.stat-value { color: var(--text-secondary); font-family: var(--font-mono); font-weight: 500; }
+
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeInUp 0.4s ease forwards; }
+
+@media (max-width: 1200px) { .main-grid { grid-template-columns: 280px 1fr 300px; } }
+@media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } .panel-left, .panel-right { max-height: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.modal-overlay.visible { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  width: 520px; max-width: 94vw;
+  overflow: hidden;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.modal-overlay.visible .modal { transform: translateY(0) scale(1); }
+.modal.expanded { width: 860px; }
+.modal-header {
+  padding: 24px 28px 0; display: flex; align-items: center; gap: 12px;
+}
+.modal-header-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--green-dim), var(--green));
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.modal-header-icon svg { width: 20px; height: 20px; color: #fff; }
+.modal-header-text h2 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+.modal-header-text p { font-size: 12px; color: var(--text-muted); }
+.modal-close {
+  margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition); font-size: 16px;
+}
+.modal-close:hover { background: var(--surface-3); color: var(--text-primary); border-color: var(--border-active); }
+
+.modal-body { padding: 24px 28px; }
+
+/* Choice cards */
+.modal-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.choice-card {
+  padding: 20px; border-radius: var(--radius-lg);
+  border: 2px solid var(--border); background: var(--surface-2);
+  cursor: pointer; transition: all 0.25s ease; text-align: center;
+}
+.choice-card:hover { border-color: var(--border-active); background: var(--surface-3); transform: translateY(-2px); }
+.choice-card:active { transform: translateY(0); }
+.choice-icon {
+  width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.choice-icon.preview { background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan)); }
+.choice-icon.publish { background: linear-gradient(135deg, #8B5CF6, #A855F7); }
+.choice-icon svg { width: 24px; height: 24px; color: #fff; }
+.choice-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.choice-card p { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+/* Preview player */
+.preview-area { display: none; }
+.preview-area.visible { display: block; }
+.video-container {
+  position: relative; width: 100%; border-radius: var(--radius-lg);
+  overflow: hidden; background: #000; aspect-ratio: 16/9;
+  border: 1px solid var(--border);
+}
+.video-container video { width: 100%; height: 100%; display: block; }
+.video-overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: rgba(0,0,0,0.5);
+  transition: opacity 0.3s ease; cursor: pointer;
+}
+.video-overlay.hidden { opacity: 0; pointer-events: none; }
+.play-btn {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.25s ease;
+}
+.play-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.08); }
+.play-btn svg { width: 28px; height: 28px; color: #fff; margin-left: 3px; }
+.video-label { font-size: 12px; color: rgba(255,255,255,0.7); }
+.video-meta {
+  display: flex; gap: 16px; margin-top: 12px;
+  font-size: 11px; color: var(--text-muted); justify-content: center;
+}
+.video-meta span { display: flex; align-items: center; gap: 4px; }
+
+.preview-actions {
+  display: flex; gap: 10px; margin-top: 16px;
+}
+.btn-modal {
+  flex: 1; padding: 10px 16px; border-radius: var(--radius);
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none; transition: all var(--transition);
+}
+.btn-modal.secondary { background: var(--surface-3); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-modal.secondary:hover { background: var(--surface-4); color: var(--text-primary); }
+.btn-modal.primary { background: linear-gradient(135deg, #8B5CF6, #A855F7); color: #fff; }
+.btn-modal.primary:hover { box-shadow: 0 4px 16px rgba(139,92,246,0.35); transform: translateY(-1px); }
+
+/* Publish area */
+.publish-area { display: none; }
+.publish-area.visible { display: block; }
+.publish-channel {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.publish-channel:last-child { border-bottom: none; }
+.channel-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.channel-icon.server { background: linear-gradient(135deg, var(--navy), var(--accent-blue)); }
+.channel-icon.video { background: linear-gradient(135deg, #DC2626, #EF4444); }
+.channel-icon.social { background: linear-gradient(135deg, #0EA5E9, #06B6D4); }
+.channel-icon svg { width: 18px; height: 18px; color: #fff; }
+.channel-info { flex: 1; }
+.channel-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.channel-info p { font-size: 11px; color: var(--text-muted); }
+.channel-progress { width: 100%; margin-top: 6px; }
+.channel-bar-track {
+  width: 100%; height: 4px; border-radius: 2px;
+  background: var(--surface-4); overflow: hidden;
+}
+.channel-bar-fill {
+  height: 100%; border-radius: 2px; width: 0%;
+  transition: width 0.4s ease;
+}
+.channel-bar-fill.server-fill { background: linear-gradient(90deg, var(--navy-light), var(--accent-blue)); }
+.channel-bar-fill.video-fill { background: linear-gradient(90deg, #DC2626, #EF4444); }
+.channel-bar-fill.social-fill { background: linear-gradient(90deg, #0EA5E9, #06B6D4); }
+.channel-status {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; margin-top: 4px; min-width: 70px; text-align: right;
+  display: flex; align-items: center; gap: 4px; justify-content: flex-end;
+}
+.channel-status.waiting { color: var(--text-muted); }
+.channel-status.uploading { color: var(--accent-blue); }
+.channel-status.processing { color: var(--orange); }
+.channel-status.success { color: var(--green); }
+
+/* Publish complete */
+.publish-complete {
+  display: none; text-align: center; padding: 20px 0 8px;
+}
+.publish-complete.visible { display: block; }
+.publish-check {
+  width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 14px;
+  background: linear-gradient(135deg, var(--green-dim), var(--green));
+  display: flex; align-items: center; justify-content: center;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+.publish-check svg { width: 28px; height: 28px; color: #fff; }
+.publish-complete h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.publish-complete p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.publish-links {
+  display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap;
+}
+.pub-link {
+  padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-secondary); cursor: pointer; transition: all var(--transition);
+  text-decoration: none;
+}
+.pub-link:hover { background: var(--surface-3); color: var(--text-primary); border-color: var(--border-active); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="app">
+
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">FN</div>
+    <div class="header-title"><span>FINCANTIERI</span> NEWS GENERATOR</div>
+  </div>
+  <div class="header-meta">
+    <div id="liveIndicator" class="live-badge" style="display:none;">
+      <div class="live-dot"></div> GENERATING
+    </div>
+    <span><span class="status-dot green"></span> API Connected</span>
+    <span id="clockDisplay">--:--:--</span>
+  </div>
+</header>
+
+<div class="main-grid">
+
+  <!-- LEFT: Configuration -->
+  <aside class="panel-left">
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Topic & Brand
+      </div>
+      <div class="field">
+        <label class="field-label">Argomento ricerca</label>
+        <input id="topicInput" class="field-input" type="text" value="Fincantieri" placeholder="es. Fincantieri, Leonardo, ENI...">
+      </div>
+      <div class="field">
+        <label class="field-label">Brand preset</label>
+        <select id="brandSelect" class="field-input">
+          <option value="fincantieri" selected>Fincantieri News</option>
+          <option value="custom">Custom brand...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg>
+        Pipeline
+      </div>
+      <div id="pipelineCards">
+        <div class="pipeline-card selected" data-pipeline="nautilus" onclick="selectPipeline(this)">
+          <div class="pipeline-icon nautilus">NTL</div>
+          <div class="pipeline-info"><h4>Nautilus Pro</h4><p>Anchor + B-roll, frame-chained, lip-sync</p></div>
+          <span class="pipeline-badge best">Best</span>
+        </div>
+        <div class="pipeline-card" data-pipeline="triton" onclick="selectPipeline(this)">
+          <div class="pipeline-icon triton">TRT</div>
+          <div class="pipeline-info"><h4>Triton</h4><p>Due anchor insieme, frame-chained</p></div>
+          <span class="cost-tag">$2.87</span>
+        </div>
+        <div class="pipeline-card" data-pipeline="poseidon" onclick="selectPipeline(this)">
+          <div class="pipeline-icon poseidon">PSD</div>
+          <div class="pipeline-info"><h4>Poseidon</h4><p>Anchor separati, ricerca dinamica</p></div>
+          <span class="pipeline-badge fast">Fast</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Parametri
+      </div>
+      <div class="field">
+        <label class="field-label">Concorrenza video</label>
+        <div class="range-row">
+          <input type="range" id="concurrency" min="1" max="4" value="2" oninput="document.getElementById('concVal').textContent=this.value">
+          <span class="range-value" id="concVal">2</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Risoluzione</label>
+        <select id="resolution" class="field-input">
+          <option value="1080p" selected>1920 x 1080 (Full HD)</option>
+          <option value="720p">1280 x 720 (HD)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Durata clip (sec)</label>
+        <div class="range-row">
+          <input type="range" id="clipDuration" min="5" max="15" value="10" oninput="document.getElementById('durVal').textContent=this.value+'s'">
+          <span class="range-value" id="durVal">10s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M4 20V4m0 16 4-4m-4 4 8-8m-8 8 12-12m-12 12 16-16"/></svg>
+        Opzioni Skip
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Skip TTS (usa audio nativo)</span>
+        <div id="toggleTTS" class="toggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Skip Video (solo script + audio)</span>
+        <div id="toggleVideo" class="toggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Skip Assembly (no MediaForge)</span>
+        <div id="toggleAssembly" class="toggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        Voci VoxEngine
+      </div>
+      <div class="field">
+        <label class="field-label">Marco (Voice ID)</label>
+        <input class="field-input" type="text" value="vox_marco_it_01" style="font-family:var(--font-mono);font-size:11px;">
+      </div>
+      <div class="field">
+        <label class="field-label">Giulia (Voice ID)</label>
+        <input class="field-input" type="text" value="vox_giulia_it_01" style="font-family:var(--font-mono);font-size:11px;">
+      </div>
+      <div class="field">
+        <label class="field-label">Stability</label>
+        <div class="range-row">
+          <input type="range" min="0" max="100" value="60" oninput="document.getElementById('stabVal').textContent=(this.value/100).toFixed(1)">
+          <span class="range-value" id="stabVal">0.6</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Style</label>
+        <div class="range-row">
+          <input type="range" min="0" max="100" value="30" oninput="document.getElementById('styleVal').textContent=(this.value/100).toFixed(1)">
+          <span class="range-value" id="styleVal">0.3</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="launch-area">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span class="section-label" style="margin-bottom:0;">Costo stimato</span>
+        <span class="cost-tag" id="costEstimate">~ $2.13</span>
+      </div>
+      <button id="launchBtn" class="btn-launch" onclick="startGeneration()">Genera Newscast</button>
+    </div>
+  </aside>
+
+  <!-- CENTER: Pipeline + Terminal -->
+  <main class="panel-center">
+    <div class="pipeline-viz">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Pipeline Attiva
+        <span id="pipelineLabel" style="color:var(--text-muted);font-weight:400;font-size:12px;margin-left:auto;">Nautilus Pro — 7 step</span>
+      </h3>
+      <div class="pipeline-steps" id="pipelineSteps">
+        <div class="p-step" data-step="0">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+          <div class="p-step-label">Reference Image</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="1">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+          <div class="p-step-label">TTS Audio</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="2">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 10-4 4-4-4"/></svg></div>
+          <div class="p-step-label">B-Roll Analysis</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="3">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+          <div class="p-step-label">Anchor Video</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="4">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+          <div class="p-step-label">B-Roll Video</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="5">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20"/><path d="M10 4v4"/></svg></div>
+          <div class="p-step-label">Lower Thirds</div>
+          <div class="p-step-connector"></div>
+        </div>
+        <div class="p-step" data-step="6">
+          <div class="p-step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></svg></div>
+          <div class="p-step-label">Assembly</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overall-progress" id="progressArea" style="display:none;">
+      <div class="progress-header">
+        <span>Avanzamento globale</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-stats">
+        <span id="statElapsed">Tempo: 0s</span>
+        <span id="statClips">Clip: 0/7</span>
+        <span id="statAudio">Audio: 0/4</span>
+        <span id="statCost">Costo: $0.00</span>
+      </div>
+    </div>
+
+    <div class="terminal-section">
+      <div class="terminal-header">
+        <h3>Console Output</h3>
+        <div class="terminal-tabs">
+          <button class="terminal-tab active" onclick="switchTab(this)">Tutto</button>
+          <button class="terminal-tab" onclick="switchTab(this)">API Calls</button>
+          <button class="terminal-tab" onclick="switchTab(this)">Errori</button>
+        </div>
+      </div>
+      <div class="terminal-body" id="terminal"></div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Content -->
+  <aside class="panel-right">
+    <div class="panel-section">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
+        Notizia Selezionata
+      </div>
+      <div class="news-card" id="newsCard" style="display:none;">
+        <h4 id="newsHeadline"></h4>
+        <ul class="news-facts" id="newsFacts"></ul>
+      </div>
+      <div id="newsPlaceholder" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">
+        La notizia apparira dopo la fase di ricerca
+      </div>
+    </div>
+
+    <div class="panel-section" style="flex:1;">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 6.1H3"/><path d="M21 12.1H3"/><path d="M15.1 18H3"/></svg>
+        Script & Clip Status
+      </div>
+      <div id="scriptCards"></div>
+    </div>
+
+    <div class="panel-section" id="brollSection" style="display:none;">
+      <div class="section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+        B-Roll Cues
+      </div>
+      <div id="brollCards"></div>
+    </div>
+  </aside>
+
+</div>
+
+<div class="stats-bar">
+  <div class="stat-group">
+    <div class="stat-item">Pipeline: <span class="stat-value" id="footerPipeline">Nautilus</span></div>
+    <div class="stat-item">Modello: <span class="stat-value" id="footerModel">nautilus-pro</span></div>
+    <div class="stat-item">TTS: <span class="stat-value">vox_broadcast_v2</span></div>
+  </div>
+  <div class="stat-group">
+    <div class="stat-item">Output: <span class="stat-value" id="footerOutput">output/nautilus/newscast_final.mp4</span></div>
+  </div>
+</div>
+
+<!-- ─── MODAL ─── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="modal-header-text">
+        <h2>Newscast Pronto</h2>
+        <p id="modalMeta">18.5MB | ~59s | 7 segmenti</p>
+      </div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Choice screen -->
+      <div class="modal-choices" id="modalChoices">
+        <div class="choice-card" onclick="showPreview()">
+          <div class="choice-icon preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <h3>Anteprima</h3>
+          <p>Guarda il newscast prima di pubblicare</p>
+        </div>
+        <div class="choice-card" onclick="showPublish()">
+          <div class="choice-icon publish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+          </div>
+          <h3>Pubblica</h3>
+          <p>Distribuisci su server, video e social</p>
+        </div>
+      </div>
+
+      <!-- Preview area -->
+      <div class="preview-area" id="previewArea">
+        <div class="video-container">
+          <video id="videoPlayer" preload="metadata">
+            <source src="output/newscast_final.mp4" type="video/mp4">
+          </video>
+          <div class="video-overlay" id="videoOverlay" onclick="togglePlay()">
+            <div class="play-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+            <span class="video-label">Fincantieri News — Anteprima</span>
+          </div>
+        </div>
+        <div class="video-meta">
+          <span>1920x1080</span>
+          <span>24fps</span>
+          <span>~59s</span>
+          <span>18.5MB</span>
+        </div>
+        <div class="preview-actions">
+          <button class="btn-modal secondary" onclick="backToChoices()">Indietro</button>
+          <button class="btn-modal primary" onclick="fromPreviewToPublish()">Pubblica ora</button>
+        </div>
+      </div>
+
+      <!-- Publish area -->
+      <div class="publish-area" id="publishArea">
+
+        <div class="publish-channel" id="ch-server">
+          <div class="channel-icon server">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
+          </div>
+          <div class="channel-info">
+            <h4>CDN Server</h4>
+            <p>Upload su rete di distribuzione interna</p>
+            <div class="channel-progress">
+              <div class="channel-bar-track"><div class="channel-bar-fill server-fill" id="bar-server"></div></div>
+            </div>
+          </div>
+          <div class="channel-status waiting" id="st-server">In attesa</div>
+        </div>
+
+        <div class="publish-channel" id="ch-video">
+          <div class="channel-icon video">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+          </div>
+          <div class="channel-info">
+            <h4>Video Platform</h4>
+            <p>Pubblicazione su piattaforma video aziendale</p>
+            <div class="channel-progress">
+              <div class="channel-bar-track"><div class="channel-bar-fill video-fill" id="bar-video"></div></div>
+            </div>
+          </div>
+          <div class="channel-status waiting" id="st-video">In attesa</div>
+        </div>
+
+        <div class="publish-channel" id="ch-social">
+          <div class="channel-icon social">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="channel-info">
+            <h4>Social Media</h4>
+            <p>Distribuzione su canali social aziendali</p>
+            <div class="channel-progress">
+              <div class="channel-bar-track"><div class="channel-bar-fill social-fill" id="bar-social"></div></div>
+            </div>
+          </div>
+          <div class="channel-status waiting" id="st-social">In attesa</div>
+        </div>
+
+        <div class="publish-complete" id="publishComplete">
+          <div class="publish-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3>Pubblicazione completata</h3>
+          <p>Il newscast e' stato distribuito su tutti i canali</p>
+          <div class="publish-links">
+            <span class="pub-link" onclick="closeModal()">cdn.internal/fincantieri/news-2026-03-25.mp4</span>
+            <span class="pub-link" onclick="closeModal()">video.internal/watch/fn-piano-2029</span>
+            <span class="pub-link" onclick="closeModal()">social.internal/post/fn-news-latest</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ─── STATE ───
+const state = { running:false, elapsed:0, timer:null, currentStep:-1, progressPct:0, clipsReady:0, audioReady:0, totalClips:7, totalAudio:4, cost:0, startTime:null };
+
+const SCRIPT_DATA = [
+  { id:'clip1', speaker:'marco', name:'Marco Ferretti', role:'Anchor', dialogue:'Buonasera e benvenuti a Fincantieri News. Notizia straordinaria oggi: il nuovo piano industriale prevede ricavi oltre dieci miliardi entro il 2029. Giulia, numeri impressionanti!', words:27, duration:'7.2s' },
+  { id:'clip2', speaker:'giulia', name:'Giulia Rinaldi', role:'Anchor', dialogue:"Assolutamente Marco! E la cosa piu' interessante e' l'EBITDA che triplica rispetto al 2024. Un backlog di quaranta miliardi, mai visto nella storia del gruppo!", words:26, duration:'6.8s' },
+  { id:'clip3', speaker:'marco', name:'Marco Ferretti', role:'Anchor', dialogue:"Hai perfettamente ragione. Folgiero sta trasformando Fincantieri da cantiere tradizionale a colosso tecnologico. La Borsa ha premiato con un piu' otto percento!", words:24, duration:'6.5s' },
+  { id:'clip4', speaker:'giulia', name:'Giulia Rinaldi', role:'Anchor', dialogue:"Militare, crociere di lusso, tecnologie green: tre pilastri fortissimi. L'Italia che costruisce il futuro, davvero un segnale straordinario per il settore!", words:22, duration:'6.1s' },
+];
+
+const NEWS_DATA = {
+  headline: 'Fincantieri presenta il Piano Industriale 2025-2029: ricavi a 10 miliardi e EBITDA triplicato',
+  facts: ['Ricavi target oltre 10 miliardi entro 2029','EBITDA margin al 10% (triplo vs 2024)','Backlog record di 40 miliardi di euro','Focus: militare, crociere lusso, tecnologie green','Titolo +8% dopo la presentazione']
+};
+
+const BROLL_DATA = [
+  { after:'clip1', prompt:'Cinematic aerial drone shot of a massive cruise ship hull under construction in dry dock, welding sparks illuminating steel framework, golden hour light', lower_third:'Cantiere Fincantieri - Monfalcone' },
+  { after:'clip2', prompt:'Close-up of financial stock ticker board showing green upward trend, numbers climbing, Borsa Italiana trading floor in soft focus background', lower_third:'Borsa Italiana - FCT +8%' },
+  { after:'clip3', prompt:'Sweeping aerial view of a finished naval military vessel cutting through deep blue Mediterranean waters, Italian flag waving at stern', lower_third:'Fregata Classe Constellation' },
+];
+
+const PIPELINE_CONFIGS = {
+  nautilus: { label:'Nautilus Pro - 7 step', model:'nautilus-pro', output:'output/nautilus/newscast_final.mp4', cost:2.13, steps:7 },
+  triton: { label:'Triton - 5 step', model:'triton-2.6', output:'output/triton/newscast_final.mp4', cost:2.87, steps:5 },
+  poseidon: { label:'Poseidon - 6 step', model:'poseidon-avatar-pro', output:'output/poseidon/newscast_final.mp4', cost:3.10, steps:6 },
+};
+
+let selectedPipeline = 'nautilus';
+
+// ─── HELPERS ───
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.textContent; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Clock
+setInterval(() => { document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('it-IT'); }, 1000);
+document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('it-IT');
+
+// Pipeline Selection
+function selectPipeline(el) {
+  if (state.running) return;
+  document.querySelectorAll('.pipeline-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedPipeline = el.dataset.pipeline;
+  const cfg = PIPELINE_CONFIGS[selectedPipeline];
+  document.getElementById('pipelineLabel').textContent = cfg.label;
+  document.getElementById('costEstimate').textContent = '~ $' + cfg.cost.toFixed(2);
+  document.getElementById('footerPipeline').textContent = cfg.label.split(' - ')[0];
+  document.getElementById('footerModel').textContent = cfg.model;
+  document.getElementById('footerOutput').textContent = cfg.output;
+}
+
+function switchTab(btn) {
+  document.querySelectorAll('.terminal-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─── SCRIPT CARDS ───
+function initScriptCards() {
+  const container = document.getElementById('scriptCards');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  SCRIPT_DATA.forEach(clip => {
+    const card = document.createElement('div');
+    card.className = 'script-card';
+    card.id = 'card-' + clip.id;
+
+    const head = document.createElement('div');
+    head.className = 'script-card-head';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'speaker-avatar ' + clip.speaker;
+    avatar.textContent = clip.speaker === 'marco' ? 'MF' : 'GR';
+
+    const name = document.createElement('span');
+    name.className = 'speaker-name';
+    name.textContent = clip.name;
+
+    const role = document.createElement('span');
+    role.className = 'speaker-role';
+    role.textContent = clip.role;
+
+    const status = document.createElement('span');
+    status.className = 'clip-status pending';
+    status.id = 'status-' + clip.id;
+    status.textContent = 'In attesa';
+
+    head.appendChild(avatar);
+    head.appendChild(name);
+    head.appendChild(role);
+    head.appendChild(status);
+
+    const text = document.createElement('div');
+    text.className = 'script-text';
+    text.textContent = '"' + clip.dialogue + '"';
+
+    const meta = document.createElement('div');
+    meta.className = 'script-meta';
+    const s1 = document.createElement('span'); s1.textContent = clip.words + ' parole';
+    const s2 = document.createElement('span'); s2.textContent = '~' + clip.duration;
+    const s3 = document.createElement('span'); s3.textContent = 'MP3 128kbps';
+    meta.appendChild(s1); meta.appendChild(s2); meta.appendChild(s3);
+
+    const wave = document.createElement('div');
+    wave.className = 'waveform';
+    wave.id = 'wave-' + clip.id;
+    for (let i = 0; i < 40; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'wave-bar';
+      bar.style.height = (3 + Math.random() * 13) + 'px';
+      bar.style.animationDelay = (i * 0.04) + 's';
+      wave.appendChild(bar);
+    }
+
+    card.appendChild(head);
+    card.appendChild(text);
+    card.appendChild(meta);
+    card.appendChild(wave);
+    container.appendChild(card);
+  });
+}
+
+function updateClipStatus(clipId, statusClass, label) {
+  const el = document.getElementById('status-' + clipId);
+  if (!el) return;
+  el.className = 'clip-status ' + statusClass;
+  el.textContent = label;
+  const card = document.getElementById('card-' + clipId);
+  if (card) { card.classList.remove('active', 'done'); if (statusClass === 'generating') card.classList.add('active'); if (statusClass === 'done') card.classList.add('done'); }
+  const wave = document.getElementById('wave-' + clipId);
+  if (wave) { if (statusClass === 'generating') wave.classList.add('active'); else wave.classList.remove('active'); }
+}
+
+// ─── LOGGING ───
+function addLog(icon, text, cssClass) {
+  const terminal = document.getElementById('terminal');
+  const elapsed = state.startTime ? ((Date.now() - state.startTime) / 1000) : 0;
+  const min = Math.floor(elapsed / 60);
+  const sec = (elapsed % 60).toFixed(1).padStart(4, '0');
+  const time = String(min).padStart(2,'0') + ':' + sec;
+
+  const line = document.createElement('div');
+  line.className = 'log-line fade-in';
+
+  const tEl = document.createElement('span');
+  tEl.className = 'log-time';
+  tEl.textContent = time;
+
+  const iEl = document.createElement('span');
+  iEl.className = 'log-icon';
+  iEl.textContent = icon;
+
+  const mEl = document.createElement('span');
+  mEl.className = 'log-msg ' + (cssClass || '');
+  mEl.textContent = text;
+
+  line.appendChild(tEl);
+  line.appendChild(iEl);
+  line.appendChild(mEl);
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function logStep(n, t, msg) { addLog('=', '[' + n + '/' + t + '] ' + msg, 'log-highlight'); }
+function logOk(msg) { addLog('', msg, 'log-ok'); }
+function logInfo(msg) { addLog('', msg, ''); }
+function logWarn(msg) { addLog('', msg, 'log-warn'); }
+function logApi(msg) { addLog('', msg, 'log-gold'); }
+function logDim(msg) { addLog('', msg, 'log-dim'); }
+
+// ─── PROGRESS ───
+function updateProgress(pct) {
+  state.progressPct = Math.min(100, pct);
+  document.getElementById('progressFill').style.width = state.progressPct + '%';
+  document.getElementById('progressPct').textContent = Math.round(state.progressPct) + '%';
+}
+
+function updateStats() {
+  const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
+  document.getElementById('statElapsed').textContent = 'Tempo: ' + Math.floor(elapsed/60) + 'm ' + (elapsed%60) + 's';
+  document.getElementById('statClips').textContent = 'Clip: ' + state.clipsReady + '/' + state.totalClips;
+  document.getElementById('statAudio').textContent = 'Audio: ' + state.audioReady + '/' + state.totalAudio;
+  document.getElementById('statCost').textContent = 'Costo: $' + state.cost.toFixed(2);
+}
+
+function setStep(n) {
+  state.currentStep = n;
+  document.querySelectorAll('.p-step').forEach(s => {
+    const idx = parseInt(s.dataset.step);
+    s.classList.remove('active', 'done');
+    if (idx < n) s.classList.add('done');
+    else if (idx === n) s.classList.add('active');
+  });
+}
+
+// ─── SIMULATION ───
+async function startGeneration() {
+  if (state.running) return;
+  state.running = true;
+  state.startTime = Date.now();
+  state.clipsReady = 0; state.audioReady = 0; state.cost = 0;
+
+  const btn = document.getElementById('launchBtn');
+  btn.className = 'btn-launch running';
+  btn.disabled = true;
+  btn.textContent = 'Generazione in corso...';
+
+  document.getElementById('liveIndicator').style.display = 'flex';
+  document.getElementById('progressArea').style.display = 'block';
+  const terminal = document.getElementById('terminal');
+  while (terminal.firstChild) terminal.removeChild(terminal.firstChild);
+
+  initScriptCards();
+  updateProgress(0);
+  state.timer = setInterval(updateStats, 1000);
+
+  const topic = document.getElementById('topicInput').value || 'Fincantieri';
+
+  // PREFLIGHT
+  addLog('>', 'FINCANTIERI NEWS GENERATOR v1.0', 'log-highlight');
+  await sleep(200);
+  logDim('Pipeline: ' + PIPELINE_CONFIGS[selectedPipeline].label);
+  logDim('Topic: "' + topic + '"');
+  await sleep(300);
+  logInfo('Preflight: checking API keys...');
+  await sleep(400);
+  logOk('MINERVA_API_KEY valid');
+  await sleep(150); logOk('VOXENGINE_API_KEY valid');
+  await sleep(150); logOk('NAUTILUS_API_KEY valid');
+  await sleep(150); logOk('GENBRIDGE_API_KEY valid');
+  await sleep(150); logOk('MediaForge found (v7.1)');
+  await sleep(200); logOk('Preflight OK');
+  updateProgress(3);
+
+  // STEP 1: Reference Image
+  setStep(0);
+  await sleep(500);
+  logStep(1, 7, 'Generating ultra-realistic anchor reference image...');
+  logApi('POST genbridge.internal/v1/prism-generate');
+  logDim('Prompt: "Photojournalistic portrait, 85mm f/1.4 lens... two Italian TV news anchors..."');
+  await sleep(800);
+  logInfo('Prism ImageGen: polling req_8f3a2b...');
+  await sleep(1500); logInfo('Status: processing...');
+  await sleep(2000); logInfo('Status: completed');
+  state.cost += 0.03; updateStats();
+  logOk('Anchor image: 342KB saved to output/nautilus/anchors_reference.jpg');
+  updateProgress(10);
+
+  // STEP 2: TTS
+  setStep(1);
+  await sleep(400);
+  logStep(2, 7, 'Generating Italian voices via VoxEngine...');
+  logInfo('Marco voice: vox_marco_it_01');
+  logInfo('Giulia voice: vox_giulia_it_01');
+
+  for (let i = 0; i < SCRIPT_DATA.length; i++) {
+    const clip = SCRIPT_DATA[i];
+    updateClipStatus(clip.id, 'generating', 'TTS...');
+    logApi('POST voxengine.internal/v1/synthesize/' + (clip.speaker === 'marco' ? 'marco_it...' : 'giulia_it...'));
+    await sleep(600 + Math.random() * 400);
+    const kb = Math.round(40 + Math.random() * 30);
+    logOk(clip.id + ' [' + clip.speaker + ']: ' + clip.duration + ', ' + kb + 'KB');
+    updateClipStatus(clip.id, 'done', 'Audio OK');
+    state.audioReady++; state.cost += 0.01; updateStats();
+    updateProgress(10 + ((i + 1) / SCRIPT_DATA.length) * 15);
+    await sleep(300);
+  }
+  logOk('TTS complete: 4/4 succeeded, total audio: 26.6s');
+
+  // STEP 3: B-Roll Analysis
+  setStep(2);
+  await sleep(400);
+  logStep(3, 7, 'Analyzing dialogue for B-roll cutaway moments...');
+  logApi('POST minerva.internal/v1/analyze (minerva-broadcast-4)');
+  logDim('Prompt: "You are a TV news editor. Analyze this Italian newscast dialogue..."');
+  await sleep(1500);
+  state.cost += 0.01;
+
+  // Show B-Roll
+  document.getElementById('brollSection').style.display = 'block';
+  const brollContainer = document.getElementById('brollCards');
+  while (brollContainer.firstChild) brollContainer.removeChild(brollContainer.firstChild);
+  BROLL_DATA.forEach((cue, i) => {
+    logInfo('B-roll after ' + cue.after + ': "' + cue.lower_third + '"');
+    const card = document.createElement('div');
+    card.className = 'broll-card fade-in';
+    card.style.animationDelay = (i * 0.15) + 's';
+
+    const head = document.createElement('div');
+    head.className = 'broll-head';
+    const badge = document.createElement('span');
+    badge.className = 'broll-badge';
+    badge.textContent = 'B-Roll ' + (i + 1);
+    const after = document.createElement('span');
+    after.style.cssText = 'font-size:10px;color:var(--text-muted);margin-left:auto;';
+    after.textContent = 'dopo ' + cue.after;
+    head.appendChild(badge);
+    head.appendChild(after);
+
+    const prompt = document.createElement('div');
+    prompt.className = 'broll-prompt';
+    prompt.textContent = cue.prompt.substring(0, 100) + '...';
+
+    card.appendChild(head);
+    card.appendChild(prompt);
+    brollContainer.appendChild(card);
+  });
+  await sleep(500);
+  logOk('3 B-roll cues identified');
+  updateProgress(30);
+
+  // Show news
+  document.getElementById('newsPlaceholder').style.display = 'none';
+  document.getElementById('newsCard').style.display = 'block';
+  document.getElementById('newsHeadline').textContent = NEWS_DATA.headline;
+  const factsEl = document.getElementById('newsFacts');
+  while (factsEl.firstChild) factsEl.removeChild(factsEl.firstChild);
+  NEWS_DATA.facts.forEach(f => {
+    const li = document.createElement('li');
+    li.textContent = f;
+    factsEl.appendChild(li);
+  });
+
+  // STEP 4: Anchor Videos
+  setStep(3);
+  await sleep(400);
+  logStep(4, 7, 'Generating anchor clips via Nautilus audio-to-video (frame-chained)...');
+  logInfo('Reference image: 342KB');
+
+  for (let i = 0; i < SCRIPT_DATA.length; i++) {
+    const clip = SCRIPT_DATA[i];
+    updateClipStatus(clip.id, 'generating', 'Video...');
+    logApi('POST nautilus.internal/v1/audio-to-video (' + clip.id + ')');
+    logDim('Prompt: "The ' + (clip.speaker === 'marco' ? 'man on the left' : 'woman on the right') + ' speaks to camera with confident gestures..."');
+    await sleep(800);
+    logInfo(clip.id + ': processing...');
+    await sleep(1500 + Math.random() * 1000);
+    const mb = (1.5 + Math.random() * 2).toFixed(1);
+    const sec = (8 + Math.random() * 5).toFixed(0);
+    logOk(clip.id + ': ' + mb + 'MB in ' + sec + 's');
+    updateClipStatus(clip.id, 'done', mb + 'MB');
+    state.clipsReady++; state.cost += 0.40; updateStats();
+    updateProgress(30 + ((i + 1) / SCRIPT_DATA.length) * 25);
+    if (i < SCRIPT_DATA.length - 1) { logInfo('Extracting last frame for ' + clip.id + ' -> next reference'); await sleep(300); }
+  }
+  logOk('4 anchor clips ready (frame-chained, lip-synced)');
+
+  // STEP 5: B-Roll Videos
+  setStep(4);
+  await sleep(400);
+  logStep(5, 7, 'Generating 3 B-roll clips via Nautilus text-to-video...');
+
+  for (let i = 0; i < BROLL_DATA.length; i++) {
+    logApi('POST nautilus.internal/v1/text-to-video (broll_' + i + ')');
+    logDim('Prompt: "' + BROLL_DATA[i].prompt.substring(0, 80) + '..."');
+    await sleep(600);
+    logInfo('broll_' + i + ': processing...');
+    await sleep(1200 + Math.random() * 800);
+    const mb = (0.8 + Math.random() * 1.5).toFixed(1);
+    logOk('broll_' + i + ': ' + mb + 'MB');
+    state.clipsReady++; state.cost += 0.15; updateStats();
+    updateProgress(55 + ((i + 1) / BROLL_DATA.length) * 15);
+  }
+  logOk('3 B-roll clips ready');
+
+  // STEP 6: Post-production
+  setStep(5);
+  await sleep(400);
+  logStep(6, 7, 'Post-production: lower thirds + B-roll assembly...');
+
+  for (let i = 0; i < SCRIPT_DATA.length; i++) {
+    const clip = SCRIPT_DATA[i];
+    logInfo(clip.id + ': generating lower third SVG -> PNG');
+    await sleep(200);
+    logInfo(clip.id + ': overlaying lower third...');
+    await sleep(400);
+    logOk(clip.id + ' post-production done');
+    updateProgress(70 + ((i + 1) / SCRIPT_DATA.length) * 10);
+  }
+
+  for (let i = 0; i < BROLL_DATA.length; i++) {
+    logInfo('broll_' + i + ': overlaying anchor voiceover...');
+    await sleep(300);
+    logInfo('broll_' + i + ': "' + BROLL_DATA[i].lower_third + '"');
+    await sleep(200);
+    logOk('broll_' + i + ' post-production done');
+    updateProgress(80 + ((i + 1) / BROLL_DATA.length) * 5);
+  }
+  logOk('Final sequence: 7 segments (4 anchor + 3 B-roll)');
+
+  // STEP 7: Assembly
+  setStep(6);
+  await sleep(400);
+  logStep(7, 7, 'Assembling final newscast...');
+  logInfo('Normalizing 7 clips to 1920x1080@24fps...');
+
+  for (let i = 0; i < 7; i++) {
+    await sleep(350);
+    logDim('MediaForge: normalizing clip_' + i + '.mp4');
+    updateProgress(85 + ((i + 1) / 7) * 12);
+  }
+
+  await sleep(500);
+  logInfo('Concatenating via MediaForge concat...');
+  await sleep(800);
+
+  // COMPLETE
+  updateProgress(100);
+  clearInterval(state.timer);
+  state.running = false;
+
+  const totalTime = ((Date.now() - state.startTime) / 1000).toFixed(0);
+  const finalMB = (15 + Math.random() * 5).toFixed(1);
+
+  addLog('', '', '');
+  logOk('NEWSCAST COMPLETE: ' + PIPELINE_CONFIGS[selectedPipeline].output);
+  logOk(finalMB + 'MB | ~59s | 7 segmenti | ' + totalTime + 's generazione');
+  addLog('', '', '');
+  logDim('Costo finale:');
+  logDim('  Prism ImageGen (1 image):     $0.03');
+  logDim('  VoxEngine TTS (4 clips):      $0.04');
+  logDim('  Minerva analysis:             $0.01');
+  logDim('  Nautilus anchor (4x 10s):     $1.60');
+  logDim('  Nautilus B-roll (3x 5s):      $0.45');
+  logApi('  Totale:                        $' + state.cost.toFixed(2));
+
+  document.querySelectorAll('.p-step').forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
+  document.getElementById('liveIndicator').style.display = 'none';
+
+  btn.className = 'btn-launch complete';
+  btn.textContent = 'Newscast Pronto!';
+  btn.disabled = false;
+  updateStats();
+
+  // Show modal after a brief pause
+  await sleep(600);
+  document.getElementById('modalMeta').textContent = finalMB + 'MB | ~59s | 7 segmenti | $' + state.cost.toFixed(2);
+  openModal();
+
+  btn.onclick = () => {
+    btn.className = 'btn-launch';
+    btn.textContent = 'Genera Newscast';
+    btn.onclick = startGeneration;
+    document.getElementById('progressArea').style.display = 'none';
+    document.querySelectorAll('.p-step').forEach(s => s.classList.remove('active','done'));
+    const t = document.getElementById('terminal');
+    while (t.firstChild) t.removeChild(t.firstChild);
+    addLog('>', 'In attesa di avvio...', 'log-dim');
+  };
+}
+
+// ─── MODAL LOGIC ───
+function openModal() {
+  const overlay = document.getElementById('modalOverlay');
+  const modal = document.getElementById('modal');
+  // Reset state
+  modal.classList.remove('expanded');
+  document.getElementById('modalChoices').style.display = 'grid';
+  document.getElementById('previewArea').classList.remove('visible');
+  document.getElementById('publishArea').classList.remove('visible');
+  document.getElementById('publishComplete').classList.remove('visible');
+  resetPublishChannels();
+  overlay.classList.add('visible');
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modalOverlay');
+  const video = document.getElementById('videoPlayer');
+  video.pause();
+  overlay.classList.remove('visible');
+}
+
+function showPreview() {
+  document.getElementById('modalChoices').style.display = 'none';
+  document.getElementById('previewArea').classList.add('visible');
+  document.getElementById('modal').classList.add('expanded');
+  document.getElementById('videoOverlay').classList.remove('hidden');
+}
+
+function togglePlay() {
+  const video = document.getElementById('videoPlayer');
+  const overlay = document.getElementById('videoOverlay');
+  if (video.paused) {
+    video.play().catch(function() {
+      // If file not found, simulate playback
+      overlay.classList.add('hidden');
+      simulateFakePlayback();
+    });
+    overlay.classList.add('hidden');
+  } else {
+    video.pause();
+    overlay.classList.remove('hidden');
+  }
+}
+
+function simulateFakePlayback() {
+  // Show a visual simulation when the actual file isn't available
+  const container = document.getElementById('videoPlayer').parentElement;
+  let canvas = document.getElementById('fakeCanvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'fakeCanvas';
+    canvas.width = 854;
+    canvas.height = 480;
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:1;';
+    canvas.onclick = function() {
+      const ov = document.getElementById('videoOverlay');
+      ov.classList.remove('hidden');
+      cancelAnimationFrame(canvas._raf);
+      canvas.remove();
+    };
+    container.appendChild(canvas);
+  }
+  const ctx = canvas.getContext('2d');
+  let frame = 0;
+
+  function drawFrame() {
+    frame++;
+    // Dark studio background
+    ctx.fillStyle = '#0a1628';
+    ctx.fillRect(0, 0, 854, 480);
+
+    // LED wall glow
+    const grad = ctx.createRadialGradient(427, 140, 20, 427, 140, 300);
+    grad.addColorStop(0, 'rgba(0,77,153,0.25)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 854, 480);
+
+    // News desk
+    ctx.fillStyle = '#1a2a44';
+    ctx.beginPath();
+    ctx.ellipse(427, 420, 360, 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Marco silhouette (left)
+    drawAnchor(ctx, 280, 200, frame, '#003366', 'M');
+    // Giulia silhouette (right)
+    drawAnchor(ctx, 570, 200, frame, '#4B2080', 'G');
+
+    // Lower third
+    const ltAlpha = Math.min(1, Math.max(0, (frame - 30) / 15));
+    if (ltAlpha > 0) {
+      ctx.globalAlpha = ltAlpha;
+      ctx.fillStyle = 'rgba(0,51,102,0.9)';
+      roundRect(ctx, 40, 380, 350, 50, 4);
+      ctx.fill();
+      ctx.fillStyle = '#0077B6';
+      ctx.fillRect(40, 380, 3, 50);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px DM Sans, sans-serif';
+      const speaker = (Math.floor(frame / 120) % 2 === 0) ? 'Marco Ferretti' : 'Giulia Rinaldi';
+      ctx.fillText(speaker, 54, 402);
+      ctx.fillStyle = '#0077B6';
+      ctx.font = '11px DM Sans, sans-serif';
+      ctx.fillText('Anchor', 54, 420);
+      ctx.globalAlpha = 1;
+    }
+
+    // FINCANTIERI NEWS badge
+    ctx.fillStyle = 'rgba(0,51,102,0.85)';
+    roundRect(ctx, 620, 20, 210, 30, 4);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px DM Sans, sans-serif';
+    ctx.fillText('FINCANTIERI NEWS', 634, 40);
+
+    // Live dot
+    const pulse = 0.5 + 0.5 * Math.sin(frame * 0.08);
+    ctx.fillStyle = 'rgba(220,38,38,' + pulse.toFixed(2) + ')';
+    ctx.beginPath();
+    ctx.arc(830, 35, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Timecode
+    const sec = Math.floor(frame / 24);
+    const fr = frame % 24;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText('00:' + String(sec).padStart(2,'0') + ':' + String(fr).padStart(2,'0'), 770, 468);
+
+    canvas._raf = requestAnimationFrame(drawFrame);
+  }
+
+  function drawAnchor(ctx, cx, cy, frame, color, initial) {
+    // Head
+    const bob = Math.sin(frame * 0.03) * 2;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 60 + bob, 30, 36, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 40 + bob * 0.5, 55, 70, 0, 0, Math.PI);
+    ctx.fill();
+    // Initial
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = 'bold 18px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(initial, cx, cy - 54 + bob);
+    ctx.textAlign = 'start';
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  drawFrame();
+}
+
+function backToChoices() {
+  document.getElementById('previewArea').classList.remove('visible');
+  document.getElementById('modal').classList.remove('expanded');
+  document.getElementById('modalChoices').style.display = 'grid';
+  var video = document.getElementById('videoPlayer');
+  video.pause();
+  var canvas = document.getElementById('fakeCanvas');
+  if (canvas) { cancelAnimationFrame(canvas._raf); canvas.remove(); }
+}
+
+function fromPreviewToPublish() {
+  document.getElementById('previewArea').classList.remove('visible');
+  document.getElementById('modal').classList.remove('expanded');
+  document.getElementById('modalChoices').style.display = 'none';
+  startPublish();
+}
+
+function showPublish() {
+  document.getElementById('modalChoices').style.display = 'none';
+  startPublish();
+}
+
+function resetPublishChannels() {
+  ['server','video','social'].forEach(function(ch) {
+    document.getElementById('bar-' + ch).style.width = '0%';
+    var st = document.getElementById('st-' + ch);
+    st.className = 'channel-status waiting';
+    st.textContent = 'In attesa';
+  });
+}
+
+async function startPublish() {
+  document.getElementById('publishArea').classList.add('visible');
+  document.getElementById('publishComplete').classList.remove('visible');
+  resetPublishChannels();
+
+  // Run all 3 channels in parallel
+  await Promise.all([
+    animateChannel('server', ['Upload...', 'Verifica CDN...', 'Cache invalidation...'], 2800),
+    animateChannel('video', ['Encoding...', 'Thumbnail gen...', 'Transcoding HD...', 'Publishing...'], 4200),
+    animateChannel('social', ['Resize formati...', 'Ottimizzazione mobile...', 'Scheduling post...'], 3500),
+  ]);
+
+  // Show success
+  await sleep(400);
+  document.getElementById('publishComplete').classList.add('visible');
+}
+
+async function animateChannel(name, phases, totalMs) {
+  var bar = document.getElementById('bar-' + name);
+  var st = document.getElementById('st-' + name);
+  var perPhase = totalMs / phases.length;
+
+  for (var i = 0; i < phases.length; i++) {
+    st.className = 'channel-status uploading';
+    st.textContent = phases[i];
+    var targetPct = Math.round(((i + 1) / phases.length) * 100);
+
+    // Animate progress in small increments
+    var startPct = i === 0 ? 0 : Math.round((i / phases.length) * 100);
+    var steps = 8;
+    for (var s = 0; s <= steps; s++) {
+      var pct = startPct + ((targetPct - startPct) * s / steps);
+      bar.style.width = pct + '%';
+      await sleep(perPhase / steps);
+    }
+  }
+
+  bar.style.width = '100%';
+  st.className = 'channel-status success';
+  st.textContent = 'Completato';
+}
+
+// INIT
+initScriptCards();
+addLog('>', 'In attesa di avvio...', 'log-dim');
+</script>
+</body>
+</html>
